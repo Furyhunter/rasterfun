@@ -1,0 +1,7 @@
+# ignore objs
+
+obj/
+rasterfun
+
+*.o
+*.d
