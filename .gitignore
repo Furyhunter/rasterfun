@@ -2,6 +2,7 @@
 
 obj/
 rasterfun
+rasterfun.exe
 
 *.o
 *.d

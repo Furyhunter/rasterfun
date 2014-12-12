@@ -14,7 +14,7 @@ CFLAGS  += $(shell sdl2-config --cflags)
 all: $(PROJECTNAME)
 
 $(PROJECTNAME): $(OBJS)
-	g++ $(LDFLAGS) -o $@ $^
+	g++ $^ $(LDFLAGS) -o $@
 
 obj/%.o: src/%.cpp
 	g++ $(CFLAGS) -c -o $@ $<

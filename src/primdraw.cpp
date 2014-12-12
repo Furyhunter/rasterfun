@@ -9,7 +9,15 @@
 
 using namespace std;
 
-static Matrix4 projection;
+namespace shader_in
+{
+	Matrix4 model;
+	Matrix4 view;
+	Matrix4 projection;
+	Matrix4 resolution;
+};
+
+using namespace shader_in;
 
 static function<Vector4()> PixelShader(nullptr);
 
@@ -65,7 +73,15 @@ static inline s32 orient2d(Vector3 a, Vector3 b, s32 px, s32 py)
 
 void BeginDraw()
 {
-	projection = setFrustum(45, (gWidth/gHeight), .1f, 1000.f);
+	model = Matrix4().identity();
+	view = Matrix4().identity();
+	resolution = Matrix4().identity();
+	projection = Matrix4().identity();
+
+	//projection = setOrthoFrustum(-1, 1, -1, 1, -1, 1);
+	projection = setFrustum(45, ((float)gWidth/gHeight), .001f, 1000);
+	resolution.translate(1, 1, 0);
+	resolution.scale(gWidth/2, gHeight/2, 1);
 	SDL_LockSurface(gMainSurface);
 }
 
@@ -79,13 +95,21 @@ void SetShader(function<Vector4()> func)
 	PixelShader = func;
 }
 
-void DrawTriangle(Vector3 v1, Vector3 v2, Vector3 v3)
+void DrawTriangle(Vector4 v1, Vector4 v2, Vector4 v3)
 {
+	Matrix4 mvp = resolution * projection * view * model; //model * view * projection * resolution;
+	v1 = mvp * v1;
+	v2 = mvp * v2;
+	v3 = mvp * v3;
 
-	s32 minX = round(min(v1.x, min(v2.x, v3.x)));
-	s32 minY = round(min(v1.y, min(v2.y, v3.y)));
-	s32 maxX = round(max(v1.x, max(v2.x, v3.x)));
-	s32 maxY = round(max(v1.y, max(v2.y, v3.y)));
+	Vector3 hv1, hv2, hv3;
+	hv1 = Vector3(v1.x/v1.w, v1.y/v1.w, v1.z/v1.w);
+	hv2 = Vector3(v2.x/v2.w, v2.y/v2.w, v2.z/v2.w);
+	hv3 = Vector3(v3.x/v3.w, v3.y/v3.w, v3.z/v3.w);
+	s32 minX = round(min(hv1.x, min(hv2.x, hv3.x)));
+	s32 minY = round(min(hv1.y, min(hv2.y, hv3.y)));
+	s32 maxX = round(max(hv1.x, max(hv2.x, hv3.x)));
+	s32 maxY = round(max(hv1.y, max(hv2.y, hv3.y)));
 
 	// screen bounds
 	minX = max(minX, 0);
@@ -96,11 +120,11 @@ void DrawTriangle(Vector3 v1, Vector3 v2, Vector3 v3)
 	s32 px, py;
 	for (py = minY; py <= maxY; py++)
 	{
-		for (px = minX; px <= maxX; px++)
+		for (px = minX; px < maxX; px++)
 		{
-			s32 w0 = orient2d(v2, v3, px, py);
-			s32 w1 = orient2d(v3, v1, px, py);
-			s32 w2 = orient2d(v1, v2, px, py);
+			s32 w0 = orient2d(hv2, hv3, px, py);
+			s32 w1 = orient2d(hv3, hv1, px, py);
+			s32 w2 = orient2d(hv1, hv2, px, py);
 
 			if (w0 >= 0 && w1 >= 0 && w2 >= 0)
 			{
@@ -110,10 +134,10 @@ void DrawTriangle(Vector3 v1, Vector3 v2, Vector3 v3)
 				else
 					color = Vector4(1,0,0,1);
 				u8 * pixels = (u8*)gMainSurface->pixels;
-				pixels[(px + (py * gMainSurface->w))*4 + 0] = round(color.w * 255);
-				pixels[(px + (py * gMainSurface->w))*4 + 1] = round(color.z * 255);
-				pixels[(px + (py * gMainSurface->w))*4 + 2] = round(color.y * 255);
-				pixels[(px + (py * gMainSurface->w))*4 + 3] = round(color.x * 255);
+				pixels[(px + ((gHeight-py) * gMainSurface->w))*4 + 0] = round(color.w * 255);
+				pixels[(px + ((gHeight-py) * gMainSurface->w))*4 + 1] = round(color.z * 255);
+				pixels[(px + ((gHeight-py) * gMainSurface->w))*4 + 2] = round(color.y * 255);
+				pixels[(px + ((gHeight-py) * gMainSurface->w))*4 + 3] = round(color.x * 255);
 			}
 		}
 	}
