@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SDL.h>
+#include <cstdio>
 
 // basic types
 typedef unsigned int u32;
@@ -15,3 +16,7 @@ extern SDL_Texture * gMainTexture;
 extern SDL_Surface * gMainSurface;
 extern u32 gWidth;
 extern u32 gHeight;
+
+extern FILE * debugOut;
+
+#define DBG(a) fprintf(debugOut, a) 

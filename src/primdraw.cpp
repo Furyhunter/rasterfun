@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <cstdio>
 
 using namespace std;
 
@@ -15,6 +16,7 @@ namespace shader_in
 	Matrix4 view;
 	Matrix4 projection;
 	Matrix4 resolution;
+	Vector2 screen_pos;
 };
 
 using namespace shader_in;
@@ -66,10 +68,10 @@ Matrix4 setOrthoFrustum(float l, float r, float b, float t, float n, float f)
     return mat;
 }
 
-static inline s32 orient2d(Vector3 a, Vector3 b, s32 px, s32 py)
+/*static inline s32 orient2d(Vector3 a, Vector3 b, s32 px, s32 py)
 {
 	return (b.x - a.x) * (py - a.y) - (b.y - a.y) * (px - a.x);
-}
+}*/
 
 void BeginDraw()
 {
@@ -78,10 +80,12 @@ void BeginDraw()
 	resolution = Matrix4().identity();
 	projection = Matrix4().identity();
 
-	//projection = setOrthoFrustum(-1, 1, -1, 1, -1, 1);
-	projection = setFrustum(45, ((float)gWidth/gHeight), .001f, 1000);
+	//projection = setOrthoFrustum(-1, 1, -1, 1, 0, 1);
+	projection = setFrustum(45, ((float)gWidth/gHeight), .001f, 10);
+	//projection = setFrustum(-1, 1, -1, 1, -1, 1);
 	resolution.translate(1, 1, 0);
 	resolution.scale(gWidth/2, gHeight/2, 1);
+
 	SDL_LockSurface(gMainSurface);
 }
 
@@ -95,7 +99,7 @@ void SetShader(function<Vector4()> func)
 	PixelShader = func;
 }
 
-void DrawTriangle(Vector4 v1, Vector4 v2, Vector4 v3)
+/*void DrawTriangle(Vector4 v1, Vector4 v2, Vector4 v3)
 {
 	Matrix4 mvp = resolution * projection * view * model; //model * view * projection * resolution;
 	v1 = mvp * v1;
@@ -128,17 +132,148 @@ void DrawTriangle(Vector4 v1, Vector4 v2, Vector4 v3)
 
 			if (w0 >= 0 && w1 >= 0 && w2 >= 0)
 			{
+				// prepare shader inputs
+				screen_pos = Vector2((float)px / gWidth, (float)py / gHeight);
 				Vector4 color;
 				if (PixelShader)
 					color = PixelShader();
 				else
 					color = Vector4(1,0,0,1);
 				u8 * pixels = (u8*)gMainSurface->pixels;
-				pixels[(px + ((gHeight-py) * gMainSurface->w))*4 + 0] = round(color.w * 255);
-				pixels[(px + ((gHeight-py) * gMainSurface->w))*4 + 1] = round(color.z * 255);
-				pixels[(px + ((gHeight-py) * gMainSurface->w))*4 + 2] = round(color.y * 255);
-				pixels[(px + ((gHeight-py) * gMainSurface->w))*4 + 3] = round(color.x * 255);
+				pixels[(px + (py * gMainSurface->w))*4 + 0] = round(color.w * 255);
+				pixels[(px + (py * gMainSurface->w))*4 + 1] = round(color.z * 255);
+				pixels[(px + (py * gMainSurface->w))*4 + 2] = round(color.y * 255);
+				pixels[(px + (py * gMainSurface->w))*4 + 3] = round(color.x * 255);
 			}
 		}
 	}
+}*/
+
+static inline void _PutPixel(s32 x, s32 y, u8 r, u8 g, u8 b, u8 a)
+{
+	u8 * pixels = (u8*)gMainSurface->pixels;
+	//fprintf(debugOut, "%d %d %d %d", r,g,b,a);
+	pixels[(x + (y * gMainSurface->w))*4 + 0] = a;
+	pixels[(x + (y * gMainSurface->w))*4 + 1] = b;
+	pixels[(x + (y * gMainSurface->w))*4 + 2] = g;
+	pixels[(x + (y * gMainSurface->w))*4 + 3] = r;
+}
+
+static inline void _DrawSpan(s32 x1, s32 x2, s32 y)
+{
+	if (y < 0)
+		return;
+	if (y >= gHeight)
+		return;
+	if (x1 > x2)
+		swap(x1, x2);
+
+	for (int x = x1; x < x2; x++)
+	{
+		if (x < 0 || x >= gWidth) continue;
+		if (PixelShader)
+		{
+			// prepare pixel shader inputs
+			shader_in::screen_pos = Vector2((float)x / gWidth, (float)y / gHeight);
+
+			auto out = PixelShader() * 255;
+			_PutPixel(x, y, round(out.x), round(out.y), round(out.z), round(out.w));
+		}
+		else
+		{
+			_PutPixel(x, y, 255, 255, 255, 255);
+		}
+	}
+}
+
+struct Edge
+{
+	Edge(Vector2 l, Vector2 r) : a(l), b(r) {};
+	Edge(Vector4 l, Vector4 r) : a(l.x, l.y), b(r.x, r.y) {};
+	Vector2 a;
+	Vector2 b;
+};
+
+static inline void _DrawSpansBetweenEdges(Edge l, Edge s)
+{
+	float lydiff = l.b.y - l.a.y;
+	if (lydiff == 0) return;
+
+	float sydiff = s.b.y - s.a.y;
+	if (sydiff == 0) return;
+
+	float lxdiff = l.b.x - l.a.x;
+	float sxdiff = s.b.x - s.a.x;
+
+	float factor1 = (s.a.y - l.a.y) / lydiff;
+	float factorStep1 = 1.f / lydiff;
+	float factor2 = 0;
+	float factorStep2 = 1.f / sydiff;
+
+	for (int y = s.a.y; y < s.b.y; y++)
+	{
+		_DrawSpan(
+			round(l.a.x + (lxdiff * factor1)),
+			round(s.a.x + (sxdiff * factor2)),
+			y);
+
+		factor1 += factorStep1;
+		factor2 += factorStep2;
+	}
+}
+
+void DrawTriangle(Vector4 v1, Vector4 v2, Vector4 v3)
+{
+	// transform
+	Matrix4 pvm = projection * view * model;
+	//pvm = model * view * projection;
+	v1 = pvm * v1;
+	v2 = pvm * v2;
+	v3 = pvm * v3;
+
+	/*v1 += Vector4(1, 1, 0, 0);
+	v2 += Vector4(1, 1, 0, 0);
+	v3 += Vector4(1, 1, 0, 0);*/
+
+	v1 = resolution * v1;
+	v2 = resolution * v2;
+	v3 = resolution * v3;
+
+	if (v1.w != 0) v1 /= v1.w;
+	if (v2.w != 0) v2 /= v2.w;
+	if (v3.w != 0) v3 /= v3.w;
+
+	fprintf(debugOut, "Triangle start\n");
+	fprintf(debugOut, "%f . %f . %f . %f\n", v1.x, v1.y, v1.z, v1.w);
+	fprintf(debugOut, "%f . %f . %f . %f\n", v2.x, v2.y, v2.z, v2.w);
+	fprintf(debugOut, "%f . %f . %f . %f\n", v3.x, v3.y, v3.z, v3.w);
+	fprintf(debugOut, "-----------------------\n");
+	//v1 = v1 * rpvm;
+	//v2 = v2 * rpvm;
+	//v3 = v3 * rpvm;
+
+	Edge e[3] = {
+		Edge(v1, v2),
+		Edge(v2, v3),
+		Edge(v3, v1),
+	};
+
+	float maxlen = 0;
+	int longEdge = 0;
+
+	for (int i = 0; i < 3; i++)
+	{
+		float len = abs(e[i].b.y - e[i].a.y);
+		if (len >= maxlen)
+		{
+			maxlen = len;
+			longEdge = i;
+		}
+	}
+
+	int shortEdge1 = (longEdge + 1) % 3;
+	int shortEdge2 = (longEdge + 2) % 3;
+
+	_DrawSpansBetweenEdges(e[longEdge], e[shortEdge1]);
+	_DrawSpansBetweenEdges(e[longEdge], e[shortEdge2]);
 }

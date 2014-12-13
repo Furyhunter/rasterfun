@@ -19,4 +19,6 @@ namespace shader_in
 	extern Matrix4 view;
 	extern Matrix4 projection;
 	extern Matrix4 resolution;
+
+	extern Vector2 screen_pos;
 };

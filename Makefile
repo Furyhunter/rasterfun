@@ -11,6 +11,9 @@ CFLAGS  += --std=c++11
 LDFLAGS += $(shell sdl2-config --libs)
 CFLAGS  += $(shell sdl2-config --cflags)
 
+CFLAGS += -g
+LDFLAGS += -g
+
 all: $(PROJECTNAME)
 
 $(PROJECTNAME): $(OBJS)
