@@ -19,4 +19,8 @@ extern u32 gHeight;
 
 extern FILE * debugOut;
 
+extern bool keytable[5];
+void FlushAndRefresh();
+void PollEvents();
+
 #define DBG(a) fprintf(debugOut, a) 

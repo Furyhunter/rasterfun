@@ -19,6 +19,7 @@ u32 gHeight;
 
 FILE * debugOut;
 
+bool keyTable[5] = {false, false, false, false, false};
 
 bool gRunning = true;
 
@@ -29,9 +30,52 @@ static Vector4 pixel_shader()
 	return Vector4(screen_pos.x, screen_pos.y, 1-screen_pos.x, 1);
 }
 
-int main(int argc, char ** argv)
+void FlushAndRefresh()
+{
+	SDL_UpdateTexture(gMainTexture, NULL, gMainSurface->pixels, gMainSurface->pitch);
+	SDL_RenderCopy(gRenderer, gMainTexture, NULL, NULL);
+	SDL_RenderCopyEx(gRenderer, gMainTexture, NULL, NULL, 0, NULL, SDL_FLIP_VERTICAL);
+	SDL_RenderPresent(gRenderer);
+}
+
+void PollEvents()
 {
 	SDL_Event evt;
+	while (SDL_PollEvent(&evt))
+	{
+		if (evt.type == SDL_QUIT)
+		{
+			gRunning = false;
+		}
+		if (evt.type == SDL_KEYDOWN)
+		{
+			if (evt.key.keysym.sym == SDLK_ESCAPE)
+			{
+				gRunning = false;
+			}
+			switch (evt.key.keysym.sym)
+			{
+				case SDLK_LEFT:  keyTable[0] = true; break;
+				case SDLK_RIGHT: keyTable[1] = true; break;
+				case SDLK_UP:    keyTable[2] = true; break;
+				case SDLK_DOWN:  keyTable[3] = true; break;
+			}
+		}
+		if (evt.type == SDL_KEYUP)
+		{
+			switch (evt.key.keysym.sym)
+			{
+				case SDLK_LEFT:  keyTable[0] = false; break;
+				case SDLK_RIGHT: keyTable[1] = false; break;
+				case SDLK_UP:    keyTable[2] = false; break;
+				case SDLK_DOWN:  keyTable[3] = false; break;
+			}
+		}
+	}
+}
+
+int main(int argc, char ** argv)
+{
 	SDL_Init(SDL_INIT_VIDEO);
 	debugOut = fopen("debug.txt", "w");
 
@@ -46,51 +90,35 @@ int main(int argc, char ** argv)
 	SDL_Rect renderRect;
 	float timeRun = 0;
 	float rot = 0;
+	float zpos = 0;
+
 
 	SetShader(pixel_shader);
 	while (gRunning)
 	{
-		while (SDL_PollEvent(&evt))
-		{
-			if (evt.type == SDL_QUIT)
-			{
-				gRunning = false;
-			}
-			if (evt.type = SDL_KEYDOWN)
-			{
-				if (evt.key.keysym.sym == SDLK_ESCAPE)
-				{
-					gRunning = false;
-				}
-				if (evt.key.keysym.sym == SDLK_LEFT)
-				{
-					rot += 5;
-				}
-				if (evt.key.keysym.sym == SDLK_RIGHT)
-				{
-					rot -= 5;
-				}
-			}
-	
-		}
+		PollEvents();
+
+		if (keyTable[0]) rot+=90 * (1.f/60);
+		if (keyTable[1]) rot-=90 * (1.f/60);
+		if (keyTable[2]) zpos-=10 * (1.f/60);
+		if (keyTable[3]) zpos+=10 * (1.f/60);
 
 		// draw
-		std::cout << "drawing frame" << std::endl;
 		BeginDraw();
 		memset(gMainSurface->pixels, 0, gMainSurface->w * gMainSurface->h * 4);
-		shader_in::view.identity().rotate(rot, 0, 1, 0);
+		shader_in::view.identity().translate(0, 0, zpos).rotate(-rot, 0, 1, 0);
 		shader_in::model.identity();
 		//shader_in::model.rotate(timeRun * 90, 1, 0, 0);
-		shader_in::model.translate(0, 0, timeRun);
+		//shader_in::model.translate(0, 0, timeRun);
 		//shader_in::model.translate(timeRun, 0, 0);
 		/*DrawTriangle(
 			Vector3(0, 100, -50 - timeRun * 64),
 			Vector3(100, 200, 0),
 			Vector3(0, 200, 0));*/
-		DrawTriangle(
+		/*DrawTriangle(
 			Vector4(0, 0, 0, 1),
 			Vector4(0, 1, 0, 1),
-			Vector4(1, 0, 0, 1));
+			Vector4(1, 0, 0, 1));*/
 
 		// floor
 		shader_in::model.identity().scale(10).translate(-5, 1.8, 3);
@@ -99,10 +127,10 @@ int main(int argc, char ** argv)
 			Vector4(0, 0, 0, 1),
 			Vector4(0, 0, 1, 1),
 			Vector4(1, 0, 0, 1));
-		DrawTriangle(
+		/*DrawTriangle(
 			Vector4(1, 0, 0, 1),
 			Vector4(0, 0, 1, 1),
-			Vector4(1, 0, 1, 1));
+			Vector4(1, 0, 1, 1));*/
 		EndDraw();
 
 		// finish blit

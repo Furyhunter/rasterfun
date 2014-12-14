@@ -21,6 +21,8 @@ namespace shader_in
 
 using namespace shader_in;
 
+static int triangleCounter = 0;
+
 static function<Vector4()> PixelShader(nullptr);
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -75,6 +77,8 @@ Matrix4 setOrthoFrustum(float l, float r, float b, float t, float n, float f)
 
 void BeginDraw()
 {
+	triangleCounter = 0;
+
 	model = Matrix4().identity();
 	view = Matrix4().identity();
 	resolution = Matrix4().identity();
@@ -92,6 +96,8 @@ void BeginDraw()
 void EndDraw()
 {
 	SDL_UnlockSurface(gMainSurface);
+
+	fprintf(debugOut, "END DRAW\n\n");
 }
 
 void SetShader(function<Vector4()> func)
@@ -165,10 +171,11 @@ static inline void _DrawSpan(s32 x1, s32 x2, s32 y)
 		return;
 	if (y >= gHeight)
 		return;
-	if (x1 > x2)
-		swap(x1, x2);
 
-	for (int x = x1; x < x2; x++)
+	s32 xmin = min(x1, x2);
+	s32 xmax = max(x1, x2);
+
+	for (int x = xmin; x < xmax; x++)
 	{
 		if (x < 0 || x >= gWidth) continue;
 		if (PixelShader)
@@ -210,13 +217,18 @@ static inline void _DrawSpansBetweenEdges(Edge l, Edge s)
 	float factor2 = 0;
 	float factorStep2 = 1.f / sydiff;
 
-	for (int y = s.a.y; y < s.b.y; y++)
+	int topY = min((int)gHeight, (int)round(s.b.y));
+
+	for (int y = s.a.y; y < topY; y++)
 	{
 		_DrawSpan(
 			round(l.a.x + (lxdiff * factor1)),
 			round(s.a.x + (sxdiff * factor2)),
 			y);
 
+		//FlushAndRefresh();
+		//PollEvents();
+		//if (!(y < 0 || y >= gHeight)) SDL_Delay(2);
 		factor1 += factorStep1;
 		factor2 += factorStep2;
 	}
@@ -231,10 +243,6 @@ void DrawTriangle(Vector4 v1, Vector4 v2, Vector4 v3)
 	v2 = pvm * v2;
 	v3 = pvm * v3;
 
-	/*v1 += Vector4(1, 1, 0, 0);
-	v2 += Vector4(1, 1, 0, 0);
-	v3 += Vector4(1, 1, 0, 0);*/
-
 	v1 = resolution * v1;
 	v2 = resolution * v2;
 	v3 = resolution * v3;
@@ -243,11 +251,12 @@ void DrawTriangle(Vector4 v1, Vector4 v2, Vector4 v3)
 	if (v2.w != 0) v2 /= v2.w;
 	if (v3.w != 0) v3 /= v3.w;
 
-	fprintf(debugOut, "Triangle start\n");
-	fprintf(debugOut, "%f . %f . %f . %f\n", v1.x, v1.y, v1.z, v1.w);
-	fprintf(debugOut, "%f . %f . %f . %f\n", v2.x, v2.y, v2.z, v2.w);
-	fprintf(debugOut, "%f . %f . %f . %f\n", v3.x, v3.y, v3.z, v3.w);
+	fprintf(debugOut, "Triangle %d start\n", triangleCounter);
+	fprintf(debugOut, "%f . %f\n", v1.x, v1.y);
+	fprintf(debugOut, "%f . %f\n", v2.x, v2.y);
+	fprintf(debugOut, "%f . %f\n", v3.x, v3.y);
 	fprintf(debugOut, "-----------------------\n");
+	triangleCounter++;
 	//v1 = v1 * rpvm;
 	//v2 = v2 * rpvm;
 	//v3 = v3 * rpvm;
