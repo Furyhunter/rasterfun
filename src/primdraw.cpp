@@ -157,6 +157,8 @@ void SetShader(function<Vector4()> func)
 
 static FORCEINLINE void _PutPixel(s32 x, s32 y, u8 r, u8 g, u8 b, u8 a)
 {
+	if (x < 0 || x >= gWidth) return;
+	if (y < 0 || y >= gHeight) return;
 	u8 * pixels = (u8*)gMainSurface->pixels;
 	//fprintf(debugOut, "%d %d %d %d", r,g,b,a);
 	pixels[(x + (y * gMainSurface->w))*4 + 0] = a;

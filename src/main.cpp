@@ -93,8 +93,8 @@ int main(int argc, char ** argv)
 	debugOut = fopen("debug.txt", "w");
 
 	gWindow = SDL_CreateWindow("butts", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, 0);
-	gWidth =  320;
-	gHeight = 240;
+	gWidth =  160;
+	gHeight = 120;
 	gRenderer = SDL_CreateRenderer(gWindow, 0, 0);
 
 	gMainSurface = SDL_CreateRGBSurface(0, gWidth, gHeight, 32, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
@@ -113,8 +113,8 @@ int main(int argc, char ** argv)
 		if (keyTable[1]) rot-=90 * (1.f/60);
 		if (keyTable[2]) zpos-=10 * (1.f/60);
 		if (keyTable[3]) zpos+=10 * (1.f/60);
-		if (keyTable[4]) fov+=20*(1.f/60);
-		if (keyTable[5]) fov-=20*(1.f/60);
+		if (keyTable[4]) fov+=40*(1.f/60);
+		if (keyTable[5]) fov-=40*(1.f/60);
 
 		// draw
 		BeginDraw();
