@@ -23,4 +23,8 @@ extern bool keytable[5];
 void FlushAndRefresh();
 void PollEvents();
 
-#define DBG(a) fprintf(debugOut, a) 
+#define DBG(a) fprintf(debugOut, a)
+
+#define FORCEINLINE inline __attribute__((always_inline))
+// comment for optimization
+#define FORCEINLINE inline

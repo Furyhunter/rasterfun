@@ -155,7 +155,7 @@ void SetShader(function<Vector4()> func)
 	}
 }*/
 
-static inline void _PutPixel(s32 x, s32 y, u8 r, u8 g, u8 b, u8 a)
+static FORCEINLINE void _PutPixel(s32 x, s32 y, u8 r, u8 g, u8 b, u8 a)
 {
 	u8 * pixels = (u8*)gMainSurface->pixels;
 	//fprintf(debugOut, "%d %d %d %d", r,g,b,a);
@@ -165,7 +165,7 @@ static inline void _PutPixel(s32 x, s32 y, u8 r, u8 g, u8 b, u8 a)
 	pixels[(x + (y * gMainSurface->w))*4 + 3] = r;
 }
 
-static inline void _DrawSpan(s32 x1, s32 x2, s32 y)
+static FORCEINLINE void _DrawSpan(s32 x1, s32 x2, s32 y)
 {
 	if (y < 0)
 		return;
@@ -201,8 +201,9 @@ struct Edge
 	Vector2 b;
 };
 
-static inline void _DrawSpansBetweenEdges(Edge l, Edge s)
+static FORCEINLINE void _DrawSpansBetweenEdges(Edge l, Edge s)
 {
+	bool drewAThing = false;
 	float lydiff = l.b.y - l.a.y;
 	if (lydiff == 0) return;
 
@@ -219,8 +220,11 @@ static inline void _DrawSpansBetweenEdges(Edge l, Edge s)
 
 	int topY = min((int)gHeight, (int)round(s.b.y));
 
-	for (int y = s.a.y; y < topY; y++)
+	int direction = s.a.y > s.b.y ? -1 : 1;
+
+	for (int y = s.a.y; y < s.b.y; y++)
 	{
+		drewAThing = true;
 		_DrawSpan(
 			round(l.a.x + (lxdiff * factor1)),
 			round(s.a.x + (sxdiff * factor2)),
@@ -232,6 +236,7 @@ static inline void _DrawSpansBetweenEdges(Edge l, Edge s)
 		factor1 += factorStep1;
 		factor2 += factorStep2;
 	}
+	if (drewAThing == false) fprintf(debugOut, "warning: didn't draw any spans for tri %d\n", triangleCounter);
 }
 
 void DrawTriangle(Vector4 v1, Vector4 v2, Vector4 v3)
@@ -256,7 +261,6 @@ void DrawTriangle(Vector4 v1, Vector4 v2, Vector4 v3)
 	fprintf(debugOut, "%f . %f\n", v2.x, v2.y);
 	fprintf(debugOut, "%f . %f\n", v3.x, v3.y);
 	fprintf(debugOut, "-----------------------\n");
-	triangleCounter++;
 	//v1 = v1 * rpvm;
 	//v2 = v2 * rpvm;
 	//v3 = v3 * rpvm;
@@ -285,4 +289,5 @@ void DrawTriangle(Vector4 v1, Vector4 v2, Vector4 v3)
 
 	_DrawSpansBetweenEdges(e[longEdge], e[shortEdge1]);
 	_DrawSpansBetweenEdges(e[longEdge], e[shortEdge2]);
+	triangleCounter++;
 }
