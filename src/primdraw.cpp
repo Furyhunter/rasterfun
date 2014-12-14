@@ -85,7 +85,7 @@ void BeginDraw()
 	projection = Matrix4().identity();
 
 	//projection = setOrthoFrustum(-1, 1, -1, 1, 0, 1);
-	projection = setFrustum(45, ((float)gWidth/gHeight), .001f, 10);
+	projection = setFrustum(fov, ((float)gWidth/gHeight), .001f, 10);
 	//projection = setFrustum(-1, 1, -1, 1, -1, 1);
 	resolution.translate(1, 1, 0);
 	resolution.scale(gWidth/2, gHeight/2, 1);
@@ -165,30 +165,36 @@ static FORCEINLINE void _PutPixel(s32 x, s32 y, u8 r, u8 g, u8 b, u8 a)
 	pixels[(x + (y * gMainSurface->w))*4 + 3] = r;
 }
 
-static FORCEINLINE void _DrawSpan(s32 x1, s32 x2, s32 y)
+static FORCEINLINE void _DrawSpan(float x1, float x2, s32 y)
 {
 	if (y < 0)
 		return;
 	if (y >= gHeight)
 		return;
 
-	s32 xmin = min(x1, x2);
-	s32 xmax = max(x1, x2);
+	/*
+	float xmin = min(x1, x2);
+	float xmax = max(x1, x2);*/
 
-	for (int x = xmin; x < xmax; x++)
+	if (x1 > x2) swap(x1, x2);
+
+	x1 = max((float)0, x1);
+	x2 = min((float)gWidth, x2);
+
+	for (float x = x1; x < x2; x+=1)
 	{
 		if (x < 0 || x >= gWidth) continue;
 		if (PixelShader)
 		{
 			// prepare pixel shader inputs
-			shader_in::screen_pos = Vector2((float)x / gWidth, (float)y / gHeight);
+			shader_in::screen_pos = Vector2(x / gWidth, (float)y / gHeight);
 
 			auto out = PixelShader() * 255;
-			_PutPixel(x, y, round(out.x), round(out.y), round(out.z), round(out.w));
+			_PutPixel(round(x), y, round(out.x), round(out.y), round(out.z), round(out.w));
 		}
 		else
 		{
-			_PutPixel(x, y, 255, 255, 255, 255);
+			_PutPixel(round(x), y, 255, 255, 255, 255);
 		}
 	}
 }
@@ -204,6 +210,11 @@ struct Edge
 static FORCEINLINE void _DrawSpansBetweenEdges(Edge l, Edge s)
 {
 	bool drewAThing = false;
+
+	// edge coordinate swapping if necessary (dy need to be positive)
+	if (s.a.y > s.b.y) swap(s.a, s.b);
+	if (l.a.y > l.b.y) swap(l.a, l.b);
+
 	float lydiff = l.b.y - l.a.y;
 	if (lydiff == 0) return;
 
@@ -218,17 +229,15 @@ static FORCEINLINE void _DrawSpansBetweenEdges(Edge l, Edge s)
 	float factor2 = 0;
 	float factorStep2 = 1.f / sydiff;
 
-	int topY = min((int)gHeight, (int)round(s.b.y));
+	float maxY = min((float)gHeight, s.b.y);
 
-	int direction = s.a.y > s.b.y ? -1 : 1;
-
-	for (int y = s.a.y; y < s.b.y; y++)
+	for (float y = s.a.y; y < maxY; y+=1)
 	{
 		drewAThing = true;
 		_DrawSpan(
-			round(l.a.x + (lxdiff * factor1)),
-			round(s.a.x + (sxdiff * factor2)),
-			y);
+			l.a.x + (lxdiff * factor1),
+			s.a.x + (sxdiff * factor2),
+			round(y));
 
 		//FlushAndRefresh();
 		//PollEvents();
@@ -252,9 +261,9 @@ void DrawTriangle(Vector4 v1, Vector4 v2, Vector4 v3)
 	v2 = resolution * v2;
 	v3 = resolution * v3;
 
-	if (v1.w != 0) v1 /= v1.w;
-	if (v2.w != 0) v2 /= v2.w;
-	if (v3.w != 0) v3 /= v3.w;
+	if (v1.w != 0) v1 /= v1.w; else v1 = Vector4();
+	if (v2.w != 0) v2 /= v2.w; else v2 = Vector4();
+	if (v3.w != 0) v3 /= v3.w; else v2 = Vector4();
 
 	fprintf(debugOut, "Triangle %d start\n", triangleCounter);
 	fprintf(debugOut, "%f . %f\n", v1.x, v1.y);

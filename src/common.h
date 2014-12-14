@@ -19,12 +19,14 @@ extern u32 gHeight;
 
 extern FILE * debugOut;
 
-extern bool keytable[5];
+extern bool keytable[7];
 void FlushAndRefresh();
 void PollEvents();
+
+extern float fov;
 
 #define DBG(a) fprintf(debugOut, a)
 
 #define FORCEINLINE inline __attribute__((always_inline))
 // comment for optimization
-#define FORCEINLINE inline
+//#define FORCEINLINE inline

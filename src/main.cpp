@@ -17,6 +17,8 @@ SDL_Window * gWindow;
 u32 gWidth;
 u32 gHeight;
 
+float fov = 45;
+
 FILE * debugOut;
 
 bool keyTable[5] = {false, false, false, false, false};
@@ -28,6 +30,13 @@ static Vector4 pixel_shader()
 	using namespace shader_in;
 
 	return Vector4(screen_pos.x, screen_pos.y, 1-screen_pos.x, 1);
+}
+
+static Vector4 psh_wall()
+{
+	using namespace shader_in;
+
+	return Vector4(.05f, .1f, 0, 1);
 }
 
 void FlushAndRefresh()
@@ -59,6 +68,8 @@ void PollEvents()
 				case SDLK_RIGHT: keyTable[1] = true; break;
 				case SDLK_UP:    keyTable[2] = true; break;
 				case SDLK_DOWN:  keyTable[3] = true; break;
+				case SDLK_q:     keyTable[4] = true; break;
+				case SDLK_e:     keyTable[5] = true; break;
 			}
 		}
 		if (evt.type == SDL_KEYUP)
@@ -69,6 +80,8 @@ void PollEvents()
 				case SDLK_RIGHT: keyTable[1] = false; break;
 				case SDLK_UP:    keyTable[2] = false; break;
 				case SDLK_DOWN:  keyTable[3] = false; break;
+				case SDLK_q:     keyTable[4] = false; break;
+				case SDLK_e:     keyTable[5] = false; break;
 			}
 		}
 	}
@@ -92,8 +105,6 @@ int main(int argc, char ** argv)
 	float rot = 0;
 	float zpos = 0;
 
-
-	SetShader(pixel_shader);
 	while (gRunning)
 	{
 		PollEvents();
@@ -102,6 +113,8 @@ int main(int argc, char ** argv)
 		if (keyTable[1]) rot-=90 * (1.f/60);
 		if (keyTable[2]) zpos-=10 * (1.f/60);
 		if (keyTable[3]) zpos+=10 * (1.f/60);
+		if (keyTable[4]) fov+=20*(1.f/60);
+		if (keyTable[5]) fov-=20*(1.f/60);
 
 		// draw
 		BeginDraw();
@@ -120,17 +133,31 @@ int main(int argc, char ** argv)
 			Vector4(0, 1, 0, 1),
 			Vector4(1, 0, 0, 1));*/
 
+		// wall
+		SetShader(psh_wall);
+		shader_in::model.identity().scale(10).translate(-5, -3, 13);
+		DrawTriangle(
+			Vector4(0, 0, 0, 1),
+			Vector4(0, .5f, 0, 1),
+			Vector4(1, 0, 0, 1));
+		DrawTriangle(
+			Vector4(1, 0, 0, 1),
+			Vector4(0, .5f, 0, 1),
+			Vector4(1, .5f, 0, 1));
+
 		// floor
+		SetShader(pixel_shader);
 		shader_in::model.identity().scale(10).translate(-5, 1.8, 3);
 		//shader_in::model.identity().rotate(90, -1,0,0).scale(10).translate(0, -1, 0);
 		DrawTriangle(
 			Vector4(0, 0, 0, 1),
 			Vector4(0, 0, 1, 1),
 			Vector4(1, 0, 0, 1));
-		/*DrawTriangle(
+		DrawTriangle(
 			Vector4(1, 0, 0, 1),
 			Vector4(0, 0, 1, 1),
-			Vector4(1, 0, 1, 1));*/
+			Vector4(1, 0, 1, 1));
+
 		EndDraw();
 
 		// finish blit
