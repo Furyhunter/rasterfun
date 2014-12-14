@@ -97,7 +97,7 @@ void EndDraw()
 {
 	SDL_UnlockSurface(gMainSurface);
 
-	fprintf(debugOut, "END DRAW\n\n");
+	if (keyTable[6]) fprintf(debugOut, "END DRAW\n\n");
 }
 
 void SetShader(function<Vector4()> func)
@@ -267,11 +267,15 @@ void DrawTriangle(Vector4 v1, Vector4 v2, Vector4 v3)
 	if (v2.w != 0) v2 /= v2.w; else v2 = Vector4();
 	if (v3.w != 0) v3 /= v3.w; else v2 = Vector4();
 
-	fprintf(debugOut, "Triangle %d start\n", triangleCounter);
-	fprintf(debugOut, "%f . %f\n", v1.x, v1.y);
-	fprintf(debugOut, "%f . %f\n", v2.x, v2.y);
-	fprintf(debugOut, "%f . %f\n", v3.x, v3.y);
-	fprintf(debugOut, "-----------------------\n");
+	if (keyTable[6])
+	{
+		fprintf(debugOut, "Triangle %d start\n", triangleCounter);
+		fprintf(debugOut, "%f . %f\n", v1.x, v1.y);
+		fprintf(debugOut, "%f . %f\n", v2.x, v2.y);
+		fprintf(debugOut, "%f . %f\n", v3.x, v3.y);
+		fprintf(debugOut, "-----------------------\n");
+	}
+	
 	//v1 = v1 * rpvm;
 	//v2 = v2 * rpvm;
 	//v3 = v3 * rpvm;

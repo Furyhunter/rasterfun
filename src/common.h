@@ -19,7 +19,7 @@ extern u32 gHeight;
 
 extern FILE * debugOut;
 
-extern bool keytable[7];
+extern bool keyTable[8];
 void FlushAndRefresh();
 void PollEvents();
 

@@ -21,7 +21,7 @@ float fov = 45;
 
 FILE * debugOut;
 
-bool keyTable[5] = {false, false, false, false, false};
+bool keyTable[8] = {false, false, false, false, false};
 
 bool gRunning = true;
 
@@ -70,6 +70,7 @@ void PollEvents()
 				case SDLK_DOWN:  keyTable[3] = true; break;
 				case SDLK_q:     keyTable[4] = true; break;
 				case SDLK_e:     keyTable[5] = true; break;
+				case SDLK_SPACE: keyTable[6] = true; break;
 			}
 		}
 		if (evt.type == SDL_KEYUP)
@@ -82,6 +83,7 @@ void PollEvents()
 				case SDLK_DOWN:  keyTable[3] = false; break;
 				case SDLK_q:     keyTable[4] = false; break;
 				case SDLK_e:     keyTable[5] = false; break;
+				//case SDLK_SPACE: keyTable[6] = false; break;
 			}
 		}
 	}
@@ -169,6 +171,8 @@ int main(int argc, char ** argv)
 
 		SDL_Delay(1000/60);
 		timeRun += (1.f/60.f);
+
+		keyTable[6] = false;
 	}
 
 	//SDL_FreeSurface(gMainSurface);
